@@ -1,0 +1,33 @@
+import { Container } from 'inversify';
+import { TYPES } from './types/tokens';
+import { IUserRepository } from './repositories/interfaces/IUserRepository';
+import { UserRepository } from './repositories/implementations/UserRepository';
+import { IJwtService } from './services/interfaces/IJwtService';
+import { JwtService } from './services/implementations/JwtService';
+import { IKycService } from './services/interfaces/IKycService';
+import { KycService } from './services/implementations/KycService';
+import { IUserService } from './services/interfaces/IUserService';
+import { UserService } from './services/implementations/UserService';
+import { ICloudinaryService } from './services/interfaces/ICloudinaryService';
+import { CloudinaryService } from './services/implementations/CloudinaryService';
+import { UserController } from './controllers/user.controller';
+import { KycController } from './controllers/kyc.controller';
+import { IAdminRepository } from './repositories/interfaces/IAdminRepository';
+import { AdminRepository } from './repositories/implementations/AdminRepository';
+import { IAdminService } from './services/interfaces/IAdminService';
+import { AdminService } from './services/implementations/AdminService';
+import { AdminController } from './controllers/admin.controller';
+
+const container = new Container();
+container.bind<IUserRepository>(TYPES.UserRepository).to(UserRepository).inSingletonScope();
+container.bind<IJwtService>(TYPES.JwtService).to(JwtService).inSingletonScope();
+container.bind<ICloudinaryService>(TYPES.CloudinaryService).to(CloudinaryService).inSingletonScope();
+container.bind<IKycService>(TYPES.KycService).to(KycService).inSingletonScope();
+container.bind<IUserService>(TYPES.UserService).to(UserService).inSingletonScope();
+container.bind<UserController>(TYPES.UserController).to(UserController);
+container.bind<KycController>(TYPES.KycController).to(KycController);
+container.bind<IAdminRepository>(TYPES.AdminRepository).to(AdminRepository).inSingletonScope();
+container.bind<IAdminService>(TYPES.AdminService).to(AdminService).inSingletonScope();
+container.bind<AdminController>(TYPES.AdminController).to(AdminController);
+
+export { container };
