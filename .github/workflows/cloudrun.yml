@@ -18,7 +18,7 @@ jobs:
 
       - name: Build & Push Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}:0.0.1 .
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}:0.0.1 ./backend
           docker push ${{ secrets.DOCKERHUB_USERNAME }}:0.0.1 
 
       - name: Auth to GCP
