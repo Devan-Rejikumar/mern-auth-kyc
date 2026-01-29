@@ -12,7 +12,9 @@ const jwtService = container.get<IJwtService>(TYPES.JwtService);
 
 export const authMiddleware = (req: AuthRequest, res: Response, next: NextFunction): void => {
   try {
+    console.log('req.cookies', req.cookies);
     const token = req.cookies?.token || req.headers.authorization?.substring(7);
+    console.log('token', token);
     if (!token) {
       res.status(401).json({ message: 'No token provided' });
       return;

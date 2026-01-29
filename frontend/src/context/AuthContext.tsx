@@ -43,6 +43,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async (email: string, password: string) => {
+    // #region agent log
+    console.log('[DEBUG] login() called, will POST to', import.meta.env.DEV ? 'http://localhost:5000/api' : 'VITE_API_URL', '/auth/login');
+    fetch('http://127.0.0.1:7244/ingest/3f836a50-eef8-48c0-88b9-ffb3ad0219f3',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'AuthContext.tsx:login',message:'login called',data:{},timestamp:Date.now(),sessionId:'debug-session',runId:'run2',hypothesisId:'H8'})}).catch(()=>{});
+    // #endregion
     await api.post('/auth/login', { email, password });
     await fetchMe(); // backend decides auth
   };

@@ -52,6 +52,7 @@ export class UserController {
 
   getMe = async (req: AuthRequest, res: Response): Promise<void> => {
     try {
+      console.log('req.user', req.user);
       if (!req.user) {
         res.status(401).json({ message: 'Unauthorized' });
         return;

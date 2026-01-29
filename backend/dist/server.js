@@ -21,6 +21,12 @@ app.use((0, cors_1.default)({
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
+// Log every request so you can see login + /me in the backend terminal
+app.use((req, res, next) => {
+    console.log(`[REQUEST] ${req.method} ${req.path}`);
+    console.log('req.cookies', req.cookies);
+    next();
+});
 app.use('/api/auth', user_routes_1.default);
 app.use('/api/kyc', kyc_routes_1.default);
 app.use('/api/admin', admin_routes_1.default);
@@ -29,10 +35,10 @@ app.get('/health', (req, res) => {
 });
 const startServer = async () => {
     try {
-        await (0, db_1.connectDB)();
-        app.listen(PORT, () => {
+        app.listen(Number(PORT), '0.0.0.0', () => {
             console.log(`Server is running on port ${PORT}`);
         });
+        await (0, db_1.connectDB)();
     }
     catch (error) {
         console.error('Failed to start server:', error);
