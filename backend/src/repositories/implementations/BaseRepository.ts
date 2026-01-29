@@ -5,8 +5,29 @@ import { PaginationOptions } from '../interfaces/IBaseRepository';
 export abstract class BaseRepository<T> {
   constructor(protected model: Model<T>) {}
 
-  async findById(id: string): Promise<T | null> {
-    return this.model.findById(id).exec();
+  async findById(id: string, options?: PaginationOptions): Promise<T | null> {
+    let query = this.model.findById(id);
+    if (options?.select) {
+      query = query.select(options.select);
+    }
+    return query.exec();
+  }
+
+  async findOne(filter: FilterQuery<T>, options?: PaginationOptions): Promise<T | null> {
+    let query = this.model.findOne(filter);
+    if (options?.select) {
+      query = query.select(options.select);
+    }
+    return query.exec();
+  }
+
+  async create(data: Partial<T>): Promise<T> {
+    const doc = new this.model(data);
+    return doc.save() as Promise<T>;
+  }
+
+  async updateById(id: string, data: Partial<T>): Promise<T | null> {
+    return this.model.findByIdAndUpdate(id, { $set: data }, { new: true }).exec();
   }
 
   protected async executeFindWithPagination(

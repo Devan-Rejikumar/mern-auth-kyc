@@ -1,7 +1,11 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
+import { loginSchema, registerSchema, validateAuthField } from '../validator/auth.validator';
+
+type FieldErrors = Record<string, string>;
 
 const Auth = () => {
   const location = useLocation();
@@ -11,6 +15,7 @@ const Auth = () => {
   const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const { login, register } = useAuth();
   const navigate = useNavigate();
@@ -22,44 +27,119 @@ const Auth = () => {
     setPhone('');
     setPassword('');
     setError('');
+    setFieldErrors({});
   }, [location.pathname]);
+
+  const validateAndSetField = (field: 'email' | 'username' | 'phone' | 'password', value: string) => {
+    setError(''); // Clear form-level error when user edits any field
+    const isEmpty = field === 'phone' || field === 'password' ? value === '' : value.trim() === '';
+    if (isEmpty) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+      return;
+    }
+    const msg = validateAuthField(field, value, isLogin);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (msg) next[field] = msg;
+      else delete next[field];
+      return next;
+    });
+  };
 
   const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
     if (value.length <= 10) {
       setPhone(value);
+      validateAndSetField('phone', value);
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
-    try {
-      if (isLogin) {
-        await login(email, password);
-        navigate('/dashboard');
-      } else {
-        await register(email, username, phone, password);
-        navigate('/login');
+    if (isLogin) {
+      const result = loginSchema.safeParse({ email: email.trim(), password });
+      if (!result.success) {
+        const firstError = result.error.issues[0]?.message ?? 'Validation failed';
+        const errorMessages = result.error.issues.map((issue: { message: string }) => issue.message).join('\n');
+        setError(errorMessages);
+        toast.error(firstError);
+        return;
       }
+      setLoading(true);
+      try {
+        await login(result.data.email, result.data.password);
+        toast.success('Signed in successfully!');
+        navigate('/dashboard');
+      } catch (err: unknown) {
+        if (err && typeof err === 'object' && 'response' in err) {
+          const axiosError = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
+          const errorMessage = axiosError.response?.data?.message;
+          const validationErrors = axiosError.response?.data?.errors;
+          if (validationErrors) {
+            const errorMessages = Object.entries(validationErrors)
+              .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
+              .join('\n');
+            setError(errorMessages);
+            toast.error(errorMessages.split('\n')[0] || 'Validation failed');
+          } else {
+            const msg = errorMessage ?? 'Login failed';
+            setError(msg);
+            toast.error(msg);
+          }
+        } else {
+          setError('Login failed');
+          toast.error('Login failed');
+        }
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    const result = registerSchema.safeParse({
+      email: email.trim(),
+      username: username.trim(),
+      phone,
+      password,
+    });
+    if (!result.success) {
+      const firstError = result.error.issues[0]?.message ?? 'Validation failed';
+      const errorMessages = result.error.issues.map((issue: { message: string }) => issue.message).join('\n');
+      setError(errorMessages);
+      toast.error(firstError);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await register(result.data.email, result.data.username, result.data.phone, result.data.password);
+      toast.success('Account created! Please sign in.');
+      navigate('/login');
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { data?: { message?: string; errors?: Record<string, string[]> } } };
         const errorMessage = axiosError.response?.data?.message;
         const validationErrors = axiosError.response?.data?.errors;
-        
         if (validationErrors) {
           const errorMessages = Object.entries(validationErrors)
             .map(([field, messages]) => `${field}: ${messages.join(', ')}`)
             .join('\n');
           setError(errorMessages);
+          toast.error(errorMessages.split('\n')[0] || 'Validation failed');
         } else {
-          setError(errorMessage || `${isLogin ? 'Login' : 'Registration'} failed`);
+          const msg = errorMessage ?? 'Registration failed';
+          setError(msg);
+          toast.error(msg);
         }
       } else {
-        setError(`${isLogin ? 'Login' : 'Registration'} failed`);
+        setError('Registration failed');
+        toast.error('Registration failed');
       }
     } finally {
       setLoading(false);
@@ -108,8 +188,8 @@ const Auth = () => {
             </p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Form - noValidate to use custom validation only */}
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             {/* Email Field */}
             <div>
               <label 
@@ -128,13 +208,21 @@ const Auth = () => {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    validateAndSetField('email', e.target.value);
+                  }}
                   autoComplete="email"
-                  className="w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                  className={`w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400 ${fieldErrors.email ? 'border-red-500' : 'border-slate-200'}`}
                   placeholder="you@example.com"
                 />
               </div>
+              {fieldErrors.email && (
+                <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                  <span aria-hidden className="shrink-0">!</span>
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
 
             {/* Username Field - Only for Registration */}
@@ -158,23 +246,27 @@ const Auth = () => {
                     value={username}
                     onChange={(e) => {
                       const value = e.target.value;
-                      // Only allow alphanumeric, and ensure it starts with a letter
                       if (value === '' || /^[a-zA-Z][a-zA-Z0-9]*$/.test(value)) {
                         setUsername(value);
+                        validateAndSetField('username', value);
                       }
                     }}
-                    required
                     autoComplete="username"
-                    minLength={3}
                     maxLength={30}
-                    pattern="^[a-zA-Z][a-zA-Z0-9]*$"
-                    className="w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                    className={`w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400 ${fieldErrors.username ? 'border-red-500' : 'border-slate-200'}`}
                     placeholder="Devan123"
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-slate-500">
-                  Must start with a letter, then letters and numbers only
-                </p>
+                {fieldErrors.username ? (
+                  <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                    <span aria-hidden className="shrink-0">!</span>
+                    {fieldErrors.username}
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    Must start with a letter, then letters and numbers only
+                  </p>
+                )}
               </div>
             )}
 
@@ -198,17 +290,22 @@ const Auth = () => {
                     type="tel"
                     value={phone}
                     onChange={handlePhoneChange}
-                    required
                     autoComplete="tel"
                     maxLength={10}
-                    pattern="[6-9]\d{9}"
-                    className="w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                    className={`w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400 ${fieldErrors.phone ? 'border-red-500' : 'border-slate-200'}`}
                     placeholder="9876543210"
                   />
                 </div>
-                <p className="mt-1.5 text-xs text-slate-500">
-                  10-digit Indian mobile number starting with 6-9
-                </p>
+                {fieldErrors.phone ? (
+                  <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                    <span aria-hidden className="shrink-0">!</span>
+                    {fieldErrors.phone}
+                  </p>
+                ) : (
+                  <p className="mt-1.5 text-xs text-slate-500">
+                    10-digit Indian mobile number starting with 6-9
+                  </p>
+                )}
               </div>
             )}
 
@@ -230,19 +327,25 @@ const Auth = () => {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    validateAndSetField('password', e.target.value);
+                  }}
                   autoComplete={isLogin ? 'current-password' : 'new-password'}
-                  className="w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                  className={`w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400 ${fieldErrors.password ? 'border-red-500' : 'border-slate-200'}`}
                   placeholder="••••••••"
-                  minLength={8}
                 />
               </div>
-              {!isLogin && (
+              {fieldErrors.password ? (
+                <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                  <span aria-hidden className="shrink-0">!</span>
+                  {fieldErrors.password}
+                </p>
+              ) : !isLogin ? (
                 <p className="mt-1.5 text-xs text-slate-500">
                   Minimum 8 characters, no spaces
                 </p>
-              )}
+              ) : null}
             </div>
 
             {/* Error Message */}

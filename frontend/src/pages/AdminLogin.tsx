@@ -1,46 +1,86 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
 import api from '../services/api';
+import { loginSchema, validateAuthField } from '../validator/auth.validator';
+
+type FieldErrors = Record<string, string>;
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
   const { loading: authLoading } = useAuthRedirect('/admin/dashboard'); // Redirect if already authenticated
 
+  const validateAndSetField = (field: 'email' | 'password', value: string) => {
+    setError(''); // Clear form-level error when user edits any field
+    const isEmpty = value.trim() === '';
+    if (isEmpty) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+      });
+      return;
+    }
+    const msg = validateAuthField(field, value, true);
+    setFieldErrors((prev) => {
+      const next = { ...prev };
+      if (msg) next[field] = msg;
+      else delete next[field];
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    setLoading(true);
 
+    const result = loginSchema.safeParse({ email: email.trim(), password });
+    if (!result.success) {
+      const firstError = result.error.issues[0]?.message ?? 'Validation failed';
+      const errorMessages = result.error.issues.map((issue: { message: string }) => issue.message).join('\n');
+      setError(errorMessages);
+      toast.error(firstError);
+      return;
+    }
+
+    setLoading(true);
     try {
-      await login(email, password);
+      await login(result.data.email, result.data.password);
       // Check role after login - wait a bit for context to update
       setTimeout(async () => {
         try {
           const checkUser = await api.get('/auth/me');
           if (checkUser.data.role === 'admin') {
+            toast.success('Signed in successfully!');
             navigate('/admin/dashboard');
           } else {
             setError('Access denied. Admin credentials required.');
+            toast.error('Access denied. Admin credentials required.');
             await api.post('/auth/logout');
             window.location.reload();
           }
         } catch (err) {
           setError('Failed to verify admin access');
+          toast.error('Failed to verify admin access');
         }
       }, 100);
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { data?: { message?: string } } };
-        setError(axiosError.response?.data?.message || 'Login failed');
+        const msg = axiosError.response?.data?.message || 'Login failed';
+        setError(msg);
+        toast.error(msg);
       } else {
         setError('Login failed');
+        toast.error('Login failed');
       }
     } finally {
       setLoading(false);
@@ -84,7 +124,7 @@ const AdminLogin = () => {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5" noValidate>
             <div>
               <label 
                 htmlFor="email" 
@@ -102,13 +142,21 @@ const AdminLogin = () => {
                   id="email"
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    validateAndSetField('email', e.target.value);
+                  }}
                   autoComplete="email"
-                  className="w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                  className={`w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400 ${fieldErrors.email ? 'border-red-500' : 'border-slate-200'}`}
                   placeholder="admin@example.com"
                 />
               </div>
+              {fieldErrors.email && (
+                <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                  <span aria-hidden className="shrink-0">!</span>
+                  {fieldErrors.email}
+                </p>
+              )}
             </div>
 
             <div>
@@ -128,14 +176,21 @@ const AdminLogin = () => {
                   id="password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    validateAndSetField('password', e.target.value);
+                  }}
                   autoComplete="current-password"
-                  className="w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400"
+                  className={`w-full pl-11 pr-4 py-3 text-base sm:text-sm text-slate-900 bg-slate-50 border rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent focus:bg-white transition-all duration-200 placeholder:text-slate-400 ${fieldErrors.password ? 'border-red-500' : 'border-slate-200'}`}
                   placeholder="••••••••"
-                  minLength={8}
                 />
               </div>
+              {fieldErrors.password && (
+                <p className="mt-1.5 text-sm text-red-600 flex items-center gap-1">
+                  <span aria-hidden className="shrink-0">!</span>
+                  {fieldErrors.password}
+                </p>
+              )}
             </div>
 
             {error && (

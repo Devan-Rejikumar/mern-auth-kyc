@@ -29,6 +29,6 @@ export class AdminRepository extends BaseRepository<IUser> implements IAdminRepo
     }
 
     async findUserById(userId: string): Promise<IUser | null> {
-        return this.model.findById(userId).select('-password').exec();
+        return super.findById(userId, { select: '-password' });
     }
 }

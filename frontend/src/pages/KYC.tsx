@@ -1,7 +1,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Webcam from 'react-webcam';
+import toast from 'react-hot-toast';
 import api from '../services/api';
+import { validateKycFileSize } from '../validator/kyc.validator';
 
 const KYC = () => {
   const navigate = useNavigate();
@@ -49,6 +51,13 @@ const KYC = () => {
       setError('');
 
       const blob = await fetch(imageSrc).then((res) => res.blob());
+      const sizeResult = validateKycFileSize(blob.size);
+      if (!sizeResult.success) {
+        const msg = sizeResult.error.issues[0]?.message ?? 'Image must be under 50MB.';
+        setError(msg);
+        toast.error(msg);
+        return;
+      }
       const file = new File([blob], 'kyc-image.jpg', { type: 'image/jpeg' });
 
       const formData = new FormData();
@@ -58,9 +67,14 @@ const KYC = () => {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
 
-      alert('Image uploaded successfully!');
-    } catch (err: any) {
-      setError(err.response?.data?.message || 'Failed to upload image');
+      setError('');
+      toast.success('Image uploaded successfully!');
+    } catch (err: unknown) {
+      const message = err && typeof err === 'object' && 'response' in err
+        ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to upload image'
+        : 'Failed to upload image';
+      setError(message);
+      toast.error(message);
     } finally {
       setUploading(false);
     }
@@ -93,6 +107,14 @@ const KYC = () => {
 
       mediaRecorder.onstop = async () => {
         const blob = new Blob(chunks, { type: 'video/webm' });
+        const sizeResult = validateKycFileSize(blob.size);
+        if (!sizeResult.success) {
+          const msg = sizeResult.error.issues[0]?.message ?? 'Video must be under 50MB.';
+          setError(msg);
+          toast.error(msg);
+          setUploading(false);
+          return;
+        }
         const file = new File([blob], 'kyc-video.webm', { type: 'video/webm' });
 
         setUploading(true);
@@ -106,9 +128,14 @@ const KYC = () => {
             headers: { 'Content-Type': 'multipart/form-data' },
           });
 
-          alert('Video uploaded successfully!');
-        } catch (err: any) {
-          setError(err.response?.data?.message || 'Failed to upload video');
+          setError('');
+          toast.success('Video uploaded successfully!');
+        } catch (err: unknown) {
+          const message = err && typeof err === 'object' && 'response' in err
+            ? (err as { response?: { data?: { message?: string } } }).response?.data?.message || 'Failed to upload video'
+            : 'Failed to upload video';
+          setError(message);
+          toast.error(message);
         } finally {
           setUploading(false);
         }

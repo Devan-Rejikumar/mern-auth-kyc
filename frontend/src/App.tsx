@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import type { ReactNode } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Auth from './pages/Auth';
 import Dashboard from './pages/Dashboard';
@@ -48,6 +49,7 @@ const AdminRoute = ({ children }: { children: ReactNode }) => {
 function App() {
   return (
     <AuthProvider>
+      <Toaster position="top-center" toastOptions={{ duration: 4000 }} />
       <BrowserRouter>
         <Routes>
           <Route path="/login" element={<Auth />} />

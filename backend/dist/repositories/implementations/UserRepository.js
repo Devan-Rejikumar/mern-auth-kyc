@@ -18,20 +18,19 @@ let UserRepository = class UserRepository extends BaseRepository_1.BaseRepositor
         super(User_1.User);
     }
     async create(userData) {
-        const user = new User_1.User(userData);
-        return user.save();
+        return super.create(userData);
     }
     async findByEmail(email) {
-        return User_1.User.findOne({ email: email.toLowerCase() }).select('+password');
+        return this.findOne({ email: email.toLowerCase() }, { select: '+password' });
     }
     async findByUsername(username) {
-        return User_1.User.findOne({ username: username.trim().toLowerCase() }).select('+password');
+        return this.findOne({ username: username.trim().toLowerCase() }, { select: '+password' });
     }
     async findById(id) {
         return super.findById(id);
     }
     async updateKYC(userId, kycData) {
-        return User_1.User.findByIdAndUpdate(userId, { $set: kycData }, { new: true });
+        return super.updateById(userId, kycData);
     }
     async findWithPagination(page, limit, search) {
         const query = {};

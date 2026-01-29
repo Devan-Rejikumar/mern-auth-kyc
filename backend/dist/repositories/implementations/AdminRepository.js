@@ -34,7 +34,7 @@ let AdminRepository = class AdminRepository extends BaseRepository_1.BaseReposit
         return this.executeFindWithPagination(page, limit, filter, { select: '-password' });
     }
     async findUserById(userId) {
-        return this.model.findById(userId).select('-password').exec();
+        return super.findById(userId, { select: '-password' });
     }
 };
 exports.AdminRepository = AdminRepository;

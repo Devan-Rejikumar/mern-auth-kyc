@@ -5,8 +5,26 @@ class BaseRepository {
     constructor(model) {
         this.model = model;
     }
-    async findById(id) {
-        return this.model.findById(id).exec();
+    async findById(id, options) {
+        let query = this.model.findById(id);
+        if (options?.select) {
+            query = query.select(options.select);
+        }
+        return query.exec();
+    }
+    async findOne(filter, options) {
+        let query = this.model.findOne(filter);
+        if (options?.select) {
+            query = query.select(options.select);
+        }
+        return query.exec();
+    }
+    async create(data) {
+        const doc = new this.model(data);
+        return doc.save();
+    }
+    async updateById(id, data) {
+        return this.model.findByIdAndUpdate(id, { $set: data }, { new: true }).exec();
     }
     async executeFindWithPagination(page, limit, filter = {}, options) {
         const skip = (page - 1) * limit;

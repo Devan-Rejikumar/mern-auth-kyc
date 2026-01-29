@@ -12,16 +12,15 @@ export class UserRepository extends BaseRepository<IUser> implements IUserReposi
     }
 
     async create(userData: RegisterDto): Promise<IUser> {
-        const user = new User(userData);
-        return user.save();
+        return super.create(userData);
     }
 
     async findByEmail(email: string): Promise<IUser | null> {
-        return User.findOne({ email: email.toLowerCase() }).select('+password');
+        return this.findOne({ email: email.toLowerCase() }, { select: '+password' });
     }
 
     async findByUsername(username: string): Promise<IUser | null> {
-        return User.findOne({ username: username.trim().toLowerCase() }).select('+password');
+        return this.findOne({ username: username.trim().toLowerCase() }, { select: '+password' });
     }
 
     async findById(id: string): Promise<IUser | null> {
@@ -29,7 +28,7 @@ export class UserRepository extends BaseRepository<IUser> implements IUserReposi
     }
 
     async updateKYC(userId: string, kycData: KycUpdateDto): Promise<IUser | null> {
-        return User.findByIdAndUpdate(userId, { $set: kycData }, { new: true });
+        return super.updateById(userId, kycData);
     }
 
     async findWithPagination(page: number, limit: number, search?: string): Promise<PaginatedUsers<IUser>> {
@@ -41,3 +40,4 @@ export class UserRepository extends BaseRepository<IUser> implements IUserReposi
         return this.executeFindWithPagination(page, limit, query, { select: '-password' });
     }
 }
+
