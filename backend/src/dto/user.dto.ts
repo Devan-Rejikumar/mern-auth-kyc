@@ -1,3 +1,5 @@
+import { PaginatedResult } from '../types/pagination';
+
 export interface RegisterDto {
     email: string;
     username: string;
@@ -15,12 +17,7 @@ export interface KycUpdateDto {
     kycVideo?: string;
 }
 
-export interface PaginatedUsers<T> {
-    users: T[];
-    totalPages: number;
-    currentPage: number;
-    totalUsers: number;
-}
+export type PaginatedUsers<T> = PaginatedResult<T>;
 
 export interface UserResponseDto {
     _id: string;

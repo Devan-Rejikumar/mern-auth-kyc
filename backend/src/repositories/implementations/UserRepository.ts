@@ -1,49 +1,43 @@
 import { injectable } from 'inversify';
+import { FilterQuery } from 'mongoose';
 import { User, IUser } from '../../models/User';
 import { IUserRepository } from '../interfaces/IUserRepository';
 import { RegisterDto, KycUpdateDto, PaginatedUsers } from '../../dto/user.dto';
-
-interface UserQuery {
-  $or?: Array<
-    | { email: { $regex: string; $options: string } }
-    | { username: { $regex: string; $options: string } }
-  >;
-}
+import { BaseRepository } from './BaseRepository';
 
 @injectable()
-export class UserRepository implements IUserRepository {
+export class UserRepository extends BaseRepository<IUser> implements IUserRepository {
+    constructor() {
+        super(User);
+    }
+
     async create(userData: RegisterDto): Promise<IUser> {
         const user = new User(userData);
-        return user.save()
+        return user.save();
     }
 
     async findByEmail(email: string): Promise<IUser | null> {
-        return User.findOne({email: email.toLowerCase()}).select('+password');
+        return User.findOne({ email: email.toLowerCase() }).select('+password');
     }
 
     async findByUsername(username: string): Promise<IUser | null> {
-        return User.findOne({username: username.trim().toLowerCase()}).select('+password');
+        return User.findOne({ username: username.trim().toLowerCase() }).select('+password');
     }
 
     async findById(id: string): Promise<IUser | null> {
-        return User.findById(id);
+        return super.findById(id);
     }
 
     async updateKYC(userId: string, kycData: KycUpdateDto): Promise<IUser | null> {
-        return User.findByIdAndUpdate(userId, {$set: kycData}, {new: true});
+        return User.findByIdAndUpdate(userId, { $set: kycData }, { new: true });
     }
+
     async findWithPagination(page: number, limit: number, search?: string): Promise<PaginatedUsers<IUser>> {
-        const skip = (page -1) * limit;
-        const query: UserQuery = {};
-        if(search){
-            const regex = {$regex: search, $options:'i'};
-            query.$or = [{email: regex}, {username: regex}];
+        const query: FilterQuery<IUser> = {};
+        if (search) {
+            const regex = { $regex: search, $options: 'i' };
+            query.$or = [{ email: regex }, { username: regex }];
         }
-        const [users, totalUsers] = await Promise.all([
-            User.find(query).select('-password').skip(skip).limit(limit).sort({createdAt:-1}),
-            User.countDocuments(query),
-        ]);
-        const totalPages = Math.ceil(totalUsers/limit);
-        return{users, totalPages, currentPage: page, totalUsers,}
+        return this.executeFindWithPagination(page, limit, query, { select: '-password' });
     }
 }
