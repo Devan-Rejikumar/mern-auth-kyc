@@ -1,9 +1,12 @@
 {
     "rewrites": [
       {
+        "source": "/api/:path*",
+        "destination": "https://mern-auth-kyc.onrender.com/api/:path*"
+      },
+      {
         "source": "/(.*)",
         "destination": "/frontend/index.html"
       }
     ]
   }
-  

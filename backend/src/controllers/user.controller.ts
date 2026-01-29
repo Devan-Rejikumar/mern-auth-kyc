@@ -29,10 +29,11 @@ export class UserController {
   login = async (req: Request, res: Response): Promise<void> => {
     try {
       const { user, token } = await this._userService.login(req.body);
+      const isBehindProxy = process.env.BEHIND_PROXY === 'true';
       res.cookie('token', token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'none',
+        sameSite: isBehindProxy ? 'lax' : 'none',
         maxAge: 24 * 60 * 60 * 1000,
       });
       res.json({
@@ -76,10 +77,11 @@ export class UserController {
 
   logout = async (_req: AuthRequest, res: Response): Promise<void> => {
     try {
+      const isBehindProxy = process.env.BEHIND_PROXY === 'true';
       res.clearCookie('token', {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
-        sameSite: 'none',
+        sameSite: isBehindProxy ? 'lax' : 'none',
       });
       res.json({ message: 'Logged out successfully' });
     } catch (error) {
