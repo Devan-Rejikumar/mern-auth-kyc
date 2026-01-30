@@ -27,7 +27,7 @@ app.use((req, res, next) => {
 
 
 console.log('Serverrrrrrrrrrr')
-app.get('/health',(req : Request, res : Response, next : NextFunction) => {
+app.get('/api/health',(req : Request, res : Response, next : NextFunction) => {
   res.json({ message : 'Healthty'  })
 })
 app.use('/api/auth', userRoutes);
