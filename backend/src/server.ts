@@ -1,4 +1,4 @@
-import express from 'express';
+import express, {Request, Response, NextFunction } from 'express';
 import dotenv from 'dotenv';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
@@ -27,6 +27,9 @@ app.use((req, res, next) => {
 
 
 console.log('Serverrrrrrrrrrr')
+app.get('/health',(req : Request, res : Response, next : NextFunction) => {
+  res.json({ message : 'Healthty'  })
+})
 app.use('/api/auth', userRoutes);
 app.use('/api/kyc', kycRoutes);
 app.use('/api/admin', adminRoutes);
