@@ -7,6 +7,7 @@ import Dashboard from './pages/Dashboard';
 import AdminLogin from './pages/AdminLogin';
 import AdminDashboard from './pages/AdminDashboard';
 import KYC from './pages/KYC';
+import Health from './components/Health';
 
 const PrivateRoute = ({ children }: { children: ReactNode }) => {
   const { isAuthenticated, loading, user } = useAuth();
@@ -55,6 +56,7 @@ function App() {
           <Route path="/login" element={<Auth />} />
           <Route path="/register" element={<Auth />} />
           <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path='/health' element={<Health/>}/>
           <Route
             path="/dashboard"
             element={
