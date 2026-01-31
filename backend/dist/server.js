@@ -21,11 +21,13 @@ app.use((0, cors_1.default)({
 app.use(express_1.default.json());
 app.use(express_1.default.urlencoded({ extended: true }));
 app.use((0, cookie_parser_1.default)());
-// Log every request so you can see login + /me in the backend terminal
 app.use((req, res, next) => {
-    console.log(`[REQUEST] ${req.method} ${req.path}`);
     console.log('req.cookies', req.cookies);
     next();
+});
+console.log('Serverrrrrrrrrrr');
+app.get('/api/health', (req, res, next) => {
+    res.json({ message: 'Healthty' });
 });
 app.use('/api/auth', user_routes_1.default);
 app.use('/api/kyc', kyc_routes_1.default);

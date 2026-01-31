@@ -16,8 +16,25 @@ exports.AdminService = void 0;
 const inversify_1 = require("inversify");
 const tokens_1 = require("../../types/tokens");
 let AdminService = class AdminService {
-    constructor(_adminRepo) {
+    constructor(_adminRepo, _userRepo, _jwtService) {
         this._adminRepo = _adminRepo;
+        this._userRepo = _userRepo;
+        this._jwtService = _jwtService;
+    }
+    async adminLogin(payload) {
+        const user = await this._userRepo.findByEmail(payload.email);
+        if (!user || !(await user.comparePassword(payload.password))) {
+            throw new Error('Invalid credentials');
+        }
+        if (user.role !== 'admin') {
+            throw new Error('Access denied. Admin privileges required.');
+        }
+        const token = this._jwtService.generateToken({
+            userId: user._id.toString(),
+            email: user.email,
+            role: user.role
+        });
+        return { user, token };
     }
     async getAllUsers(page, limit, search) {
         const result = await this._adminRepo.findAllUsers(page, limit, search);
@@ -61,5 +78,7 @@ exports.AdminService = AdminService;
 exports.AdminService = AdminService = __decorate([
     (0, inversify_1.injectable)(),
     __param(0, (0, inversify_1.inject)(tokens_1.TYPES.AdminRepository)),
-    __metadata("design:paramtypes", [Object])
+    __param(1, (0, inversify_1.inject)(tokens_1.TYPES.UserRepository)),
+    __param(2, (0, inversify_1.inject)(tokens_1.TYPES.JwtService)),
+    __metadata("design:paramtypes", [Object, Object, Object])
 ], AdminService);

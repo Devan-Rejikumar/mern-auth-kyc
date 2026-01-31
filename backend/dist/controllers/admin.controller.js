@@ -18,6 +18,31 @@ const tokens_1 = require("../types/tokens");
 let AdminController = class AdminController {
     constructor(_adminService) {
         this._adminService = _adminService;
+        this.adminLogin = async (req, res) => {
+            try {
+                const { user, token } = await this._adminService.adminLogin(req.body);
+                const isBehindProxy = process.env.BEHIND_PROXY === 'true';
+                res.cookie('token', token, {
+                    httpOnly: true,
+                    secure: process.env.NODE_ENV === 'production',
+                    sameSite: isBehindProxy ? 'lax' : 'none',
+                    maxAge: 24 * 60 * 60 * 1000,
+                });
+                res.json({
+                    message: 'Admin login successful',
+                    user: {
+                        id: user._id,
+                        email: user.email,
+                        username: user.username,
+                        role: user.role,
+                    },
+                });
+            }
+            catch (error) {
+                const message = error instanceof Error ? error.message : 'Invalid credentials';
+                res.status(403).json({ message });
+            }
+        };
         this.getAllUsers = async (req, res) => {
             try {
                 const page = parseInt(req.query.page) || 1;

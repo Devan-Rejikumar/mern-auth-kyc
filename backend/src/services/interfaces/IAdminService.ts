@@ -1,7 +1,9 @@
-import { UserResponseDto, PaginatedUsers } from '../../dto/user.dto';
+import { UserResponseDto, PaginatedUsers, LoginDto } from '../../dto/user.dto';
+import { IUser } from '../../models/User';
 
 export interface IAdminService {
     getAllUsers(page: number, limit: number, search?: string): Promise<PaginatedUsers<UserResponseDto>>;
     getUserById(userId: string): Promise<UserResponseDto>;
+    adminLogin(payload: LoginDto): Promise<{ user: IUser; token: string }>;
 }
 

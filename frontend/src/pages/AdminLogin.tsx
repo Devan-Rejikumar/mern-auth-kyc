@@ -3,7 +3,6 @@ import { useNavigate, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { useAuthRedirect } from '../hooks/useAuthRedirect';
-import api from '../services/api';
 import { loginSchema, validateAuthField } from '../validator/auth.validator';
 
 type FieldErrors = Record<string, string>;
@@ -14,12 +13,12 @@ const AdminLogin = () => {
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { adminLogin } = useAuth();
   const navigate = useNavigate();
-  const { loading: authLoading } = useAuthRedirect('/admin/dashboard'); // Redirect if already authenticated
+  const { loading: authLoading } = useAuthRedirect('/admin/dashboard');
 
   const validateAndSetField = (field: 'email' | 'password', value: string) => {
-    setError(''); // Clear form-level error when user edits any field
+    setError(''); 
     const isEmpty = value.trim() === '';
     if (isEmpty) {
       setFieldErrors((prev) => {
@@ -53,34 +52,18 @@ const AdminLogin = () => {
 
     setLoading(true);
     try {
-      await login(result.data.email, result.data.password);
-      // Check role after login - wait a bit for context to update
-      setTimeout(async () => {
-        try {
-          const checkUser = await api.get('/auth/me');
-          if (checkUser.data.role === 'admin') {
-            toast.success('Signed in successfully!');
-            navigate('/admin/dashboard');
-          } else {
-            setError('Access denied. Admin credentials required.');
-            toast.error('Access denied. Admin credentials required.');
-            await api.post('/auth/logout');
-            window.location.reload();
-          }
-        } catch (err) {
-          setError('Failed to verify admin access');
-          toast.error('Failed to verify admin access');
-        }
-      }, 100);
+      await adminLogin(result.data.email, result.data.password);
+      toast.success('Signed in successfully!');
+      navigate('/admin/dashboard', { replace: true });
     } catch (err: unknown) {
       if (err && typeof err === 'object' && 'response' in err) {
         const axiosError = err as { response?: { data?: { message?: string } } };
-        const msg = axiosError.response?.data?.message || 'Login failed';
+        const msg = axiosError.response?.data?.message || 'Admin login failed';
         setError(msg);
         toast.error(msg);
       } else {
-        setError('Login failed');
-        toast.error('Login failed');
+        setError('Admin login failed');
+        toast.error('Admin login failed');
       }
     } finally {
       setLoading(false);
