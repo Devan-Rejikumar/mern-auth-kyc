@@ -3,6 +3,10 @@ import { Request, Response } from 'express';
 import { TYPES } from '../types/tokens';
 import { IAdminService } from '../services/interfaces/IAdminService';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { HttpStatus } from '../constants/http-status.enum';
+import { AUTH_MESSAGES, USER_MESSAGES, ERROR_MESSAGES } from '../constants/messages.constant';
+import { envConfig } from '../config/env.config';
+import { AppError } from '../errors/app-error';
 
 @injectable()
 export class AdminController {
@@ -11,15 +15,14 @@ export class AdminController {
   adminLogin = async (req: Request, res: Response): Promise<void> => {
     try {
       const { user, token } = await this._adminService.adminLogin(req.body);
-      const isBehindProxy = process.env.BEHIND_PROXY === 'true';
       res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: isBehindProxy ? 'lax' : 'none',
-        maxAge: 24 * 60 * 60 * 1000,
+        secure: envConfig.isProduction,
+        sameSite: envConfig.isBehindProxy ? 'lax' : 'none',
+        maxAge: envConfig.cookieMaxAge,
       });
-      res.json({
-        message: 'Admin login successful',
+      res.status(HttpStatus.OK).json({
+        message: AUTH_MESSAGES.ADMIN_LOGIN_SUCCESS,
         user: {
           id: user._id,
           email: user.email,
@@ -28,8 +31,12 @@ export class AdminController {
         },
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Invalid credentials';
-      res.status(403).json({ message });
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      const message = error instanceof Error ? error.message : AUTH_MESSAGES.INVALID_CREDENTIALS;
+      res.status(HttpStatus.FORBIDDEN).json({ message });
     }
   };
 
@@ -40,10 +47,10 @@ export class AdminController {
       const search = req.query.search as string | undefined;
 
       const result = await this._adminService.getAllUsers(page, limit, search);
-      res.json(result);
+      res.status(HttpStatus.OK).json(result);
     } catch (error) {
       console.error('Get users error:', error);
-      res.status(500).json({ message: 'Server error fetching users' });
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: USER_MESSAGES.FETCH_ERROR });
     }
   };
 
@@ -51,10 +58,15 @@ export class AdminController {
     try {
       const { userId } = req.params;
       const user = await this._adminService.getUserById(userId);
-      res.json(user);
+      res.status(HttpStatus.OK).json(user);
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'User not found';
-      res.status(404).json({ message });
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      const message = error instanceof Error ? error.message : USER_MESSAGES.NOT_FOUND;
+      res.status(HttpStatus.NOT_FOUND).json({ message });
     }
   };
 }
+

@@ -3,6 +3,8 @@ import { container } from '../container';
 import { TYPES } from '../types/tokens';
 import { IJwtService } from '../services/interfaces/IJwtService';
 import { JwtPayload } from '../types/auth.types';
+import { HttpStatus } from '../constants/http-status.enum';
+import { AUTH_MESSAGES } from '../constants/messages.constant';
 
 export interface AuthRequest extends Request {
   user?: JwtPayload;
@@ -16,14 +18,14 @@ export const authMiddleware = (req: AuthRequest, res: Response, next: NextFuncti
     const token = req.cookies?.token || req.headers.authorization?.substring(7);
     console.log('token', token);
     if (!token) {
-      res.status(401).json({ message: 'No token provided' });
+      res.status(HttpStatus.UNAUTHORIZED).json({ message: AUTH_MESSAGES.NO_TOKEN });
       return;
     }
     const decoded = jwtService.verifyToken(token);
     req.user = decoded;
     next();
   } catch {
-    res.status(401).json({ message: 'Invalid or expired token' });
+    res.status(HttpStatus.UNAUTHORIZED).json({ message: AUTH_MESSAGES.INVALID_TOKEN });
   }
 };
 
@@ -31,17 +33,17 @@ export const adminMiddleware = (req: AuthRequest, res: Response, next: NextFunct
   try {
     const token = req.cookies?.token || req.headers.authorization?.substring(7);
     if (!token) {
-      res.status(401).json({ message: 'No token provided' });
+      res.status(HttpStatus.UNAUTHORIZED).json({ message: AUTH_MESSAGES.NO_TOKEN });
       return;
     }
     const decoded = jwtService.verifyToken(token);
     if (decoded.role !== 'admin') {
-      res.status(403).json({ message: 'Admin access required' });
+      res.status(HttpStatus.FORBIDDEN).json({ message: AUTH_MESSAGES.ADMIN_ACCESS_REQUIRED });
       return;
     }
     req.user = decoded;
     next();
   } catch {
-    res.status(401).json({ message: 'Invalid or expired token' });
+    res.status(HttpStatus.UNAUTHORIZED).json({ message: AUTH_MESSAGES.INVALID_TOKEN });
   }
 };

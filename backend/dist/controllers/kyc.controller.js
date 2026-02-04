@@ -15,30 +15,32 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.KycController = void 0;
 const inversify_1 = require("inversify");
 const tokens_1 = require("../types/tokens");
+const http_status_enum_1 = require("../constants/http-status.enum");
+const messages_constant_1 = require("../constants/messages.constant");
 let KycController = class KycController {
     constructor(_kycService) {
         this._kycService = _kycService;
         this.uploadKycFile = async (req, res) => {
             try {
                 if (!req.file) {
-                    res.status(400).json({ message: 'No file provided' });
+                    res.status(http_status_enum_1.HttpStatus.BAD_REQUEST).json({ message: messages_constant_1.KYC_MESSAGES.NO_FILE });
                     return;
                 }
                 if (!req.user) {
-                    res.status(401).json({ message: 'Unauthorized' });
+                    res.status(http_status_enum_1.HttpStatus.UNAUTHORIZED).json({ message: messages_constant_1.AUTH_MESSAGES.UNAUTHORIZED });
                     return;
                 }
                 const fileUrl = await this._kycService.uploadFileToCloudinary(req.file, req.user.userId);
-                res.json({
-                    message: 'File uploaded successfully',
+                res.status(http_status_enum_1.HttpStatus.OK).json({
+                    message: messages_constant_1.KYC_MESSAGES.UPLOAD_SUCCESS,
                     filePath: fileUrl,
                     type: req.file.mimetype.startsWith('image/') ? 'image' : 'video',
                 });
             }
             catch (error) {
-                const message = error instanceof Error ? error.message : 'Server error uploading file';
+                const message = error instanceof Error ? error.message : messages_constant_1.KYC_MESSAGES.UPLOAD_ERROR;
                 console.error('File upload error:', error);
-                res.status(500).json({ message });
+                res.status(http_status_enum_1.HttpStatus.INTERNAL_SERVER_ERROR).json({ message });
             }
         };
     }

@@ -3,6 +3,10 @@ import { Request, Response } from 'express';
 import { TYPES } from '../types/tokens';
 import { IUserService } from '../services/interfaces/IUserService';
 import { AuthRequest } from '../middleware/auth.middleware';
+import { HttpStatus } from '../constants/http-status.enum';
+import { AUTH_MESSAGES, ERROR_MESSAGES } from '../constants/messages.constant';
+import { envConfig } from '../config/env.config';
+import { AppError } from '../errors/app-error';
 
 @injectable()
 export class UserController {
@@ -11,8 +15,8 @@ export class UserController {
   register = async (req: Request, res: Response): Promise<void> => {
     try {
       const user = await this._userService.register(req.body);
-      res.status(201).json({
-        message: 'User registered successfully',
+      res.status(HttpStatus.CREATED).json({
+        message: AUTH_MESSAGES.REGISTER_SUCCESS,
         user: {
           id: user._id,
           email: user.email,
@@ -21,23 +25,26 @@ export class UserController {
         },
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Registration failed';
-      res.status(400).json({ message });
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      const message = error instanceof Error ? error.message : ERROR_MESSAGES.REGISTRATION_FAILED;
+      res.status(HttpStatus.BAD_REQUEST).json({ message });
     }
   };
 
   login = async (req: Request, res: Response): Promise<void> => {
     try {
       const { user, token } = await this._userService.login(req.body);
-      const isBehindProxy = process.env.BEHIND_PROXY === 'true';
       res.cookie('token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: isBehindProxy ? 'lax' : 'none',
-        maxAge: 24 * 60 * 60 * 1000,
+        secure: envConfig.isProduction,
+        sameSite: envConfig.isBehindProxy ? 'lax' : 'none',
+        maxAge: envConfig.cookieMaxAge,
       });
-      res.json({
-        message: 'Login successful',
+      res.status(HttpStatus.OK).json({
+        message: AUTH_MESSAGES.LOGIN_SUCCESS,
         user: {
           id: user._id,
           email: user.email,
@@ -46,8 +53,12 @@ export class UserController {
         },
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Invalid credentials';
-      res.status(401).json({ message });
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      const message = error instanceof Error ? error.message : AUTH_MESSAGES.INVALID_CREDENTIALS;
+      res.status(HttpStatus.UNAUTHORIZED).json({ message });
     }
   };
 
@@ -55,12 +66,12 @@ export class UserController {
     try {
       console.log('req.user', req.user);
       if (!req.user) {
-        res.status(401).json({ message: 'Unauthorized' });
+        res.status(HttpStatus.UNAUTHORIZED).json({ message: AUTH_MESSAGES.UNAUTHORIZED });
         return;
       }
 
       const user = await this._userService.getMe(req.user.userId);
-      res.json({
+      res.status(HttpStatus.OK).json({
         id: user._id,
         email: user.email,
         username: user.username,
@@ -70,23 +81,26 @@ export class UserController {
         kycVideo: user.kycVideo,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Server error';
-      res.status(500).json({ message });
+      if (error instanceof AppError) {
+        res.status(error.statusCode).json({ message: error.message });
+        return;
+      }
+      const message = error instanceof Error ? error.message : ERROR_MESSAGES.SERVER_ERROR;
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message });
     }
   };
 
   logout = async (_req: AuthRequest, res: Response): Promise<void> => {
     try {
-      const isBehindProxy = process.env.BEHIND_PROXY === 'true';
       res.clearCookie('token', {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: isBehindProxy ? 'lax' : 'none',
+        secure: envConfig.isProduction,
+        sameSite: envConfig.isBehindProxy ? 'lax' : 'none',
       });
-      res.json({ message: 'Logged out successfully' });
+      res.status(HttpStatus.OK).json({ message: AUTH_MESSAGES.LOGOUT_SUCCESS });
     } catch (error) {
       console.error('Logout error:', error);
-      res.status(500).json({ message: 'Server error' });
+      res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({ message: ERROR_MESSAGES.SERVER_ERROR });
     }
   };
 }

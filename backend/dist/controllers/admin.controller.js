@@ -15,21 +15,24 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.AdminController = void 0;
 const inversify_1 = require("inversify");
 const tokens_1 = require("../types/tokens");
+const http_status_enum_1 = require("../constants/http-status.enum");
+const messages_constant_1 = require("../constants/messages.constant");
+const env_config_1 = require("../config/env.config");
+const app_error_1 = require("../errors/app-error");
 let AdminController = class AdminController {
     constructor(_adminService) {
         this._adminService = _adminService;
         this.adminLogin = async (req, res) => {
             try {
                 const { user, token } = await this._adminService.adminLogin(req.body);
-                const isBehindProxy = process.env.BEHIND_PROXY === 'true';
                 res.cookie('token', token, {
                     httpOnly: true,
-                    secure: process.env.NODE_ENV === 'production',
-                    sameSite: isBehindProxy ? 'lax' : 'none',
-                    maxAge: 24 * 60 * 60 * 1000,
+                    secure: env_config_1.envConfig.isProduction,
+                    sameSite: env_config_1.envConfig.isBehindProxy ? 'lax' : 'none',
+                    maxAge: env_config_1.envConfig.cookieMaxAge,
                 });
-                res.json({
-                    message: 'Admin login successful',
+                res.status(http_status_enum_1.HttpStatus.OK).json({
+                    message: messages_constant_1.AUTH_MESSAGES.ADMIN_LOGIN_SUCCESS,
                     user: {
                         id: user._id,
                         email: user.email,
@@ -39,8 +42,12 @@ let AdminController = class AdminController {
                 });
             }
             catch (error) {
-                const message = error instanceof Error ? error.message : 'Invalid credentials';
-                res.status(403).json({ message });
+                if (error instanceof app_error_1.AppError) {
+                    res.status(error.statusCode).json({ message: error.message });
+                    return;
+                }
+                const message = error instanceof Error ? error.message : messages_constant_1.AUTH_MESSAGES.INVALID_CREDENTIALS;
+                res.status(http_status_enum_1.HttpStatus.FORBIDDEN).json({ message });
             }
         };
         this.getAllUsers = async (req, res) => {
@@ -49,22 +56,26 @@ let AdminController = class AdminController {
                 const limit = parseInt(req.query.limit) || 10;
                 const search = req.query.search;
                 const result = await this._adminService.getAllUsers(page, limit, search);
-                res.json(result);
+                res.status(http_status_enum_1.HttpStatus.OK).json(result);
             }
             catch (error) {
                 console.error('Get users error:', error);
-                res.status(500).json({ message: 'Server error fetching users' });
+                res.status(http_status_enum_1.HttpStatus.INTERNAL_SERVER_ERROR).json({ message: messages_constant_1.USER_MESSAGES.FETCH_ERROR });
             }
         };
         this.getUserById = async (req, res) => {
             try {
                 const { userId } = req.params;
                 const user = await this._adminService.getUserById(userId);
-                res.json(user);
+                res.status(http_status_enum_1.HttpStatus.OK).json(user);
             }
             catch (error) {
-                const message = error instanceof Error ? error.message : 'User not found';
-                res.status(404).json({ message });
+                if (error instanceof app_error_1.AppError) {
+                    res.status(error.statusCode).json({ message: error.message });
+                    return;
+                }
+                const message = error instanceof Error ? error.message : messages_constant_1.USER_MESSAGES.NOT_FOUND;
+                res.status(http_status_enum_1.HttpStatus.NOT_FOUND).json({ message });
             }
         };
     }
