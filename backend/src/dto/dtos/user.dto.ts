@@ -1,4 +1,4 @@
-import { PaginatedResult } from '../types/pagination';
+import { PaginatedResult } from '../../types/pagination';
 
 export interface RegisterDto {
     email: string;
@@ -29,4 +29,23 @@ export interface UserResponseDto {
     kycVideo?: string;
     createdAt?: Date;
     updatedAt?: Date;
+}
+
+// Slim response for login/register (excludes sensitive/optional fields)
+export interface UserAuthResponseDto {
+    id: string;
+    email: string;
+    username: string;
+    role: string;
+}
+
+// Full profile response including KYC fields
+export interface UserProfileResponseDto {
+    id: string;
+    email: string;
+    username: string;
+    role: string;
+    phone: string;
+    kycImage?: string;
+    kycVideo?: string;
 }

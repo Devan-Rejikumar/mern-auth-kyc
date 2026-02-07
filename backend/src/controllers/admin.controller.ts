@@ -7,6 +7,7 @@ import { HttpStatus } from '../constants/http-status.enum';
 import { AUTH_MESSAGES, USER_MESSAGES, ERROR_MESSAGES } from '../constants/messages.constant';
 import { envConfig } from '../config/env.config';
 import { AppError } from '../errors/app-error';
+import { toUserAuthResponse } from '../dto/mappers/user.mapper';
 
 @injectable()
 export class AdminController {
@@ -23,12 +24,7 @@ export class AdminController {
       });
       res.status(HttpStatus.OK).json({
         message: AUTH_MESSAGES.ADMIN_LOGIN_SUCCESS,
-        user: {
-          id: user._id,
-          email: user.email,
-          username: user.username,
-          role: user.role,
-        },
+        user: toUserAuthResponse(user),
       });
     } catch (error) {
       if (error instanceof AppError) {
@@ -69,4 +65,5 @@ export class AdminController {
     }
   };
 }
+
 

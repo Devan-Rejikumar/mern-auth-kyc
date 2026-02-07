@@ -7,6 +7,7 @@ import { HttpStatus } from '../constants/http-status.enum';
 import { AUTH_MESSAGES, ERROR_MESSAGES } from '../constants/messages.constant';
 import { envConfig } from '../config/env.config';
 import { AppError } from '../errors/app-error';
+import { toUserAuthResponse, toUserProfileResponse } from '../dto/mappers/user.mapper';
 
 @injectable()
 export class UserController {
@@ -17,12 +18,7 @@ export class UserController {
       const user = await this._userService.register(req.body);
       res.status(HttpStatus.CREATED).json({
         message: AUTH_MESSAGES.REGISTER_SUCCESS,
-        user: {
-          id: user._id,
-          email: user.email,
-          username: user.username,
-          role: user.role,
-        },
+        user: toUserAuthResponse(user),
       });
     } catch (error) {
       if (error instanceof AppError) {
@@ -45,12 +41,7 @@ export class UserController {
       });
       res.status(HttpStatus.OK).json({
         message: AUTH_MESSAGES.LOGIN_SUCCESS,
-        user: {
-          id: user._id,
-          email: user.email,
-          username: user.username,
-          role: user.role,
-        },
+        user: toUserAuthResponse(user),
       });
     } catch (error) {
       if (error instanceof AppError) {
@@ -71,15 +62,7 @@ export class UserController {
       }
 
       const user = await this._userService.getMe(req.user.userId);
-      res.status(HttpStatus.OK).json({
-        id: user._id,
-        email: user.email,
-        username: user.username,
-        role: user.role,
-        phone: user.phone,
-        kycImage: user.kycImage,
-        kycVideo: user.kycVideo,
-      });
+      res.status(HttpStatus.OK).json(toUserProfileResponse(user));
     } catch (error) {
       if (error instanceof AppError) {
         res.status(error.statusCode).json({ message: error.message });

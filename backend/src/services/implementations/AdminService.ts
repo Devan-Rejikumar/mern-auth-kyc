@@ -4,7 +4,8 @@ import { IAdminRepository } from '../../repositories/interfaces/IAdminRepository
 import { IUserRepository } from '../../repositories/interfaces/IUserRepository';
 import { IJwtService } from '../interfaces/IJwtService';
 import { IAdminService } from '../interfaces/IAdminService';
-import { UserResponseDto, PaginatedUsers, LoginDto } from '../../dto/user.dto';
+import { UserResponseDto, PaginatedUsers, LoginDto } from '../../dto/dtos/user.dto';
+import { toUserResponseDto, toUserListResponse } from '../../dto/mappers/user.mapper';
 import { IUser } from '../../models/User';
 
 @injectable()
@@ -34,20 +35,8 @@ export class AdminService implements IAdminService {
     async getAllUsers(page: number, limit: number, search?: string): Promise<PaginatedUsers<UserResponseDto>> {
         const result = await this._adminRepo.findAllUsers(page, limit, search);
         
-        const users: UserResponseDto[] = result.users.map(user => ({
-            _id: user._id.toString(),
-            email: user.email,
-            username: user.username,
-            phone: user.phone,
-            role: user.role,
-            kycImage: user.kycImage,
-            kycVideo: user.kycVideo,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-        }));
-
         return {
-            users,
+            users: toUserListResponse(result.users),
             totalPages: result.totalPages,
             currentPage: result.currentPage,
             totalUsers: result.totalUsers,
@@ -60,16 +49,7 @@ export class AdminService implements IAdminService {
             throw new Error('User not found');
         }
 
-        return {
-            _id: user._id.toString(),
-            email: user.email,
-            username: user.username,
-            phone: user.phone,
-            role: user.role,
-            kycImage: user.kycImage,
-            kycVideo: user.kycVideo,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
-        };
+        return toUserResponseDto(user);
     }
 }
+

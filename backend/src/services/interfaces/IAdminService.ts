@@ -1,4 +1,4 @@
-import { UserResponseDto, PaginatedUsers, LoginDto } from '../../dto/user.dto';
+import { UserResponseDto, PaginatedUsers, LoginDto } from '../../dto/dtos/user.dto';
 import { IUser } from '../../models/User';
 
 export interface IAdminService {
