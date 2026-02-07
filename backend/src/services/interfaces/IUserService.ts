@@ -1,4 +1,4 @@
-import { RegisterDto, LoginDto } from '../../dto/user.dto';
+import { RegisterDto, LoginDto } from '../../dto/dtos/user.dto';
 import { IUser } from '../../models/User';
 
 export interface IUserService {

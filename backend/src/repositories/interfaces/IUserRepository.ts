@@ -1,5 +1,5 @@
 import { IUser } from "../../models/User";
-import { RegisterDto, KycUpdateDto, PaginatedUsers } from "../../dto/user.dto";
+import { RegisterDto, KycUpdateDto, PaginatedUsers } from "../../dto/dtos/user.dto";
 
 export interface IUserRepository {
     findByEmail(email: string): Promise<IUser | null>;

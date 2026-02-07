@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import { TYPES } from '../../types/tokens';
 import { IUserRepository } from '../../repositories/interfaces/IUserRepository';
 import { IJwtService } from '../interfaces/IJwtService';
-import { RegisterDto, LoginDto } from '../../dto/user.dto';
+import { RegisterDto, LoginDto } from '../../dto/dtos/user.dto';
 import { IUser } from '../../models/User';
 import { IUserService } from '../interfaces/IUserService';
 

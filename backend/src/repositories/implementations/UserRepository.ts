@@ -2,7 +2,7 @@ import { injectable } from 'inversify';
 import { FilterQuery } from 'mongoose';
 import { User, IUser } from '../../models/User';
 import { IUserRepository } from '../interfaces/IUserRepository';
-import { RegisterDto, KycUpdateDto, PaginatedUsers } from '../../dto/user.dto';
+import { RegisterDto, KycUpdateDto, PaginatedUsers } from '../../dto/dtos/user.dto';
 import { BaseRepository } from './BaseRepository';
 
 @injectable()
